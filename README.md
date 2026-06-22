@@ -4,7 +4,7 @@ A Pomodoro Timer built as a desktop app using React + Electron. This is my first
 
 ## Example of Pomodoro Timer
 
-<img src="1.png" width="300"/> <img src="2.png" width="300"/> <img src="3.png" width="300"/>
+<img src="1.jpg" width="250"/> <img src="2.jpg" width="250"/> <img src="3.jpg" width="250"/> <img src="4.jpg" width="250"/>
 ---
 ## ✨ Features
 
