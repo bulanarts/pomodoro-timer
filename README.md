@@ -2,7 +2,7 @@
 
 A Pomodoro Timer built as a desktop app using React + Electron. This is my first project learning JavaScript, React, and Electron from scratch — documented here so other beginners can follow the same journey.
 
-# 🍅 Example of Pomodoro Timer
+## Example of Pomodoro Timer
 
 ![App Demo](demo.gif)
 
