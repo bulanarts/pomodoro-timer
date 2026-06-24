@@ -4,18 +4,22 @@
 //functions: actions when things happen
 //return: what the user sees
 
-//import to load the code
+// ==========================================
+// 1. IMPORTS & DEPENDENCIES
+// ==========================================
 import React, {useState, useEffect} from 'react';
-import logo from './logo.svg';
 import './App.css';
 import alarmSound from './Assets/notification.wav'
 
-//import assets that later be used at CSS
+// Import assets for CSS backgrounds
 import bgWork from "./Assets/bg-work.png";
 import bgBreak from "./Assets/bg-br.png";
 
 
-//tell the typescript, hey window.electronAPI is valid thing. and the error will go away
+// ==========================================
+// 2. TYPE DECLARATIONS (TypeScript)
+// ==========================================
+// Tell TypeScript that window.electronAPI is a valid thing
 declare global {
   interface Window {
     electronAPI?: {
@@ -24,7 +28,10 @@ declare global {
   }
 }
 
-//define the message variable
+// ==========================================
+// 3. CONFIGURATION & CONSTANTS
+// ==========================================
+// Encouragement messages for work and break modes
 const cheerMessages = [
     "You Can Do It Bulan",
     "Semangat Bulan",
@@ -38,7 +45,7 @@ const cheerMessages = [
     "Istirahatkan matamu",
   ];
 
-//define the cycle sequence for progress bar (an array of objects)
+// Cycle sequence for progress bar (work/break durations in seconds)
 const cycleSequence = [
   { type: 'work', duration: 25*60},
   { type: 'break', duration: 5*60},
@@ -49,8 +56,15 @@ const cycleSequence = [
   { type: 'work', duration: 25*60},
   { type: 'break', duration: 30*60},
 ]
-//define function timer variable
+
+// ==========================================
+// 4. MAIN APP COMPONENT
+// ==========================================
 function App() {
+
+  // ==========================================
+  // 4a. STATE MANAGEMENT (useState)
+  // ==========================================
   const [timeleft, setTimeLeft] = useState(25*60); //stores how many seconds are left
   const [isRunning, setIsRunning] = useState(false); //stores whether the timer is running
   const [isBreak, setIsBreak] = useState (false); //stores whether we are in break mode
@@ -64,8 +78,11 @@ function App() {
   const [pendingMode, setPendingMode] = useState<boolean | null >(null)
 
 
+// ==========================================
+// 4b. EFFECTS (useEffect - Automatic Reactions)
+// ==========================================
 
-//function Encouragement message updater
+// Effect 1: Encouragement Message Rotator
 useEffect(() =>{
   let messageInterval : NodeJS.Timeout;
 
@@ -85,7 +102,7 @@ useEffect(() =>{
 }, [isRunning, isBreak]);
 
 
-//functions countdown timer
+// Effect 2: Countdown Timer Logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if(isRunning && timeleft > 0) {
@@ -103,11 +120,16 @@ useEffect(() =>{
     return() => clearInterval(timer);
   }, [isRunning, timeleft, cycleStep]);
 
-  const formatTime = (seconds: number): string => {
+  // ==========================================
+  // 4c. HELPER FUNCTIONS
+  // ==========================================
+    // Format seconds to MM:SS display
+    const formatTime = (seconds: number): string => {
     const m = Math.floor(seconds/60).toString().padStart(2,'0');
     const s = (seconds % 60).toString().padStart(2,'0');
     return `${m}:${s}`;
   };
+  // Switch between work and break modes
   const switchMode = (breakMode:boolean ) => {
     //cycle mode
     if (isCycleMode && (isRunning || isFinished)){
@@ -115,7 +137,6 @@ useEffect(() =>{
       setShowWarning(true);
       return;
     }
-
     //normal switch
     setIsCycleMode(false);
     setCycleStep(0);
@@ -126,8 +147,11 @@ useEffect(() =>{
     setIsFinished(false);
   }
 
-
-  //functions actions
+  // ==========================================
+  // 4d. EVENT HANDLERS (Actions when things happen)
+  // ==========================================
+  
+  // Handle Start/Pause button click
   const handleClick = () => {
     const unlock = new Audio(alarmSound);
     unlock.volume = 0;
@@ -140,6 +164,7 @@ useEffect(() =>{
       setIsRunning(prev => !prev);
     }
   }
+  // Handle Close button click (Electron)
 const handleCloseClick = () => {
   if(window.electronAPI?.closeApp){
     window.electronAPI.closeApp();
@@ -147,24 +172,83 @@ const handleCloseClick = () => {
     console.warn("Electron API not available");
   }
 }
+  // Handle Reset button click
+    const handleResetClick = () => {
+        setIsRunning(false);
+        setTimeLeft(25 * 60);
+        setIsBreak(false);
+        setModeSelected(false);
+        setIsCycleMode(false);
+        setCycleStep(0);
+        setIsFinished(false);
+        setIsCycleComplete(false);
+        setShowWarning(false);
+        setEncouragement("");
+    };
+// Handle Continue button click (after timer finishes)
+    const handleContinueClick = () => {
+        setIsFinished(false);
+        const nextStep = cycleStep + 1;
+        
+        if (nextStep < cycleSequence.length) {
+            setCycleStep(nextStep);
+            setTimeLeft(cycleSequence[nextStep].duration);
+            setIsBreak(cycleSequence[nextStep].type === 'break');
+            setIsRunning(true);
+        } else {
+            setCycleStep(0);
+            setTimeLeft(5);
+            setIsBreak(false);
+            setIsCycleComplete(true);
+        }
+    };
+
+// Handle Restart button click (after cycle complete)
+    const handleRestartClick = () => {
+        setIsCycleComplete(false);
+        setCycleStep(0);
+        setTimeLeft(25 * 60);
+        setIsBreak(false);
+        setIsRunning(false);
+        setModeSelected(false);
+        setIsCycleMode(false);
+    };
+
+// Handle Warning popup "Yes" button
+    const handleWarningYes = () => {
+        setShowWarning(false);
+        setIsCycleMode(false);
+        setCycleStep(0);
+        setIsBreak(pendingMode!);
+        setIsRunning(false);
+        setTimeLeft(pendingMode ? 5 * 60 : 25 * 60);
+        setModeSelected(true);
+        setIsFinished(false);
+        setPendingMode(null);
+    };
+
+    // Handle Warning popup "No" button
+    const handleWarningNo = () => {
+        setShowWarning(false);
+        setPendingMode(null);
+    };
+  // ==========================================
+  // 4e. RENDER (What the user sees)
+  // ==========================================
 
   //what appears on screen
-  const containerClass = `home-container ${isBreak ? "bgBreak" : "bgWork"}`;
+  const containerStyle = {
+  backgroundImage: `url(${isBreak ? bgBreak : bgWork})`
+} as React.CSSProperties;
+
     return (
-  <div className={containerClass} style={{position: 'relative'}}>
+    <div className= {`home-container ${isBreak ? 'bgBreak' : 'bgWork'}`}>
     {isCycleComplete ? (
+      //cycle complete screen
       <div className="complete-message">
         <h2>Cycle Complete!</h2>
         <p>you did <br/> amazing Bulan</p>
-        <button className="home-button" onClick={() => {
-          setIsCycleComplete(false);
-          setCycleStep(0);
-          setTimeLeft(25*60);
-          setIsBreak(false);
-          setIsRunning(false);
-          setModeSelected(false);
-          setIsCycleMode(false);
-        }}>Restart</button>
+        <button className="home-button" onClick={handleRestartClick}>Restart</button>
       </div>
     ) : (
       <div>
@@ -172,56 +256,31 @@ const handleCloseClick = () => {
         <button className='closeButton' onClick={handleCloseClick}>
           <i className='fa-solid fa-xmark'></i>
         </button>
-        <button className='resetButton' onClick={()=>
-          {
-            setIsRunning(false);
-            setTimeLeft(25*60);
-            setIsBreak(false);
-            setModeSelected(false);
-            setIsCycleMode(false);
-            setCycleStep(0);
-            setIsFinished(false);
-            setIsCycleComplete(false);
-            setShowWarning(false);
-            setEncouragement("");
-          }
-        }>
+
+        {/* RESET BUTTON */}
+        <button className='resetButton' onClick={handleResetClick}>
           <i className='fa-solid fa-arrows-rotate'></i>
         </button>
 
-        {/* ISI CONTAINER */}
+        {/* MAIN CONTAINER */}
         <div className="home-content">
 
-          {/* HEADING */}
+          {/* HEADING - Encouragement or Title */}
           {isRunning ? (
             <p className="encouragement-text">{encouragement}</p>
           ) : (
             <h2>pomodoro timer</h2>
           )}
 
-          {/* TIMER */}
+          {/* TIMER DISPLAY*/}
           <h1 className={`home-timer ${isFinished ? "blinking" : ""}`}>
             {formatTime(timeleft)}
           </h1>
 
-          {/* CONTINUE / START BUTTON */}
+          {/* CONTINUE / START / PAUSE BUTTON */}
               {isFinished ? (
-  isCycleMode ? (
-    <button className="continue-Button" onClick={() => {
-      setIsFinished(false);
-      const nextStep = cycleStep + 1;
-      if (nextStep < cycleSequence.length) {
-        setCycleStep(nextStep);
-        setTimeLeft(cycleSequence[nextStep].duration);
-        setIsBreak(cycleSequence[nextStep].type === 'break');
-        setIsRunning(true);
-      } else {
-        setCycleStep(0);
-        setTimeLeft(5);
-        setIsBreak(false);
-        setIsCycleComplete(true);
-      }
-    }}>Continue</button>
+                isCycleMode ? (
+                <button className="continue-Button" onClick={handleContinueClick}>Continue</button>
   ) : (
     <button className="home-button" onClick={() => {
       setIsFinished(false);
@@ -246,29 +305,18 @@ const handleCloseClick = () => {
               break
             </button>
           </div>
+
+          {/* WARNING POPUP */}
           {showWarning &&(
             <div className="warning-popup">
               <p>You will lose your cycle counting. Still proceed?</p>
               <div className='yes-no'>
-              <button className='yes' onClick={() => {
-                setShowWarning(false);
-                setIsCycleMode(false);
-                setCycleStep(0);
-                setIsBreak(pendingMode!)
-                setIsRunning(false);
-                setTimeLeft(pendingMode ? 5*60 : 25*60);
-                setModeSelected(true);
-                setIsFinished(false);
-                setPendingMode(null);
-              }}>Yes, proceed</button>
-              <button className='no' onClick={() => {
-                setShowWarning(false);
-                setPendingMode(null);
-              }}>No</button></div>
+              <button className='yes' onClick={handleWarningYes}>Yes, proceed</button>
+              <button className='no' onClick={handleWarningNo}>No</button></div>
             </div>
           )}
 
-          {/* CYCLE BAR */}
+          {/* CYCLE PROGRES BAR */}
           {isCycleMode && (
             <div className="cycle-bar">
               {cycleSequence.map((segment, index) => (
